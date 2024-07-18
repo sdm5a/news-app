@@ -1,105 +1,65 @@
-import React, { Component } from 'react'
+import React, {useEffect} from 'react'
 import NewsItems from './NewsItems'
 import Spinner from './Spinner';
 import PropTypes from 'prop-types'
 import InfiniteScroll from 'react-infinite-scroll-component';
+import { useState } from 'react';
 
 
 
-export default class News extends Component {
+const News = (props) => {
+  const [articles,setArticles] = useState([]);
+  const [page,setPage] = useState(1);
+  const [totalResults,setTotalResults] = useState(0);
+  const [loading,setLoading] = useState(false);
+  //  document.title=`News Monk - ${capitalizeFirstLetter(props.category)}`;
+ 
 
-  static defaultProps={
-    country:"in",
-    pageSize:6,
-    category:"general"
-  }
-
-  static propTypes={
-    country:PropTypes.string,
-    pageSize:PropTypes.number,
-    category:PropTypes.string
-  }
-
-  capitalizeFirstLetter=(string)=>{
+  const capitalizeFirstLetter=(string)=>{
     return string.charAt(0).toUpperCase()+ string.slice(1);
   }
 
-  constructor(props){
-    super(props);
-    this.state={
-      articles:[],
-      page:1,
-      totalResults:0,
-      loding:false
-    }
-    document.title=`News Monk - ${this.capitalizeFirstLetter(this.props.category)}`;
-  }
+  useEffect( () => {
+    updateNews();
+  }, []);
 
-  async componentDidMount(){
-    let url=`https://newsapi.org/v2/top-headlines?country=${this.props.country}&category=${this.props.category}&apiKey=c48f7265c67a4329a55d126cef515ecb&page=${this.state.page}&pageSize=${this.props.pageSize}`;
-    this.setState({loding:true});
+  const updateNews= async () =>{
+   
+    const url=`https://newsapi.org/v2/top-headlines?country=${props.country}&category=${props.category}&apiKey=c48f7265c67a4329a55d126cef515ecb&page=${page}&pageSize=${props.pageSize}`;
     let data= await fetch(url);
-    let objData=await data.json();
-    this.setState({
-      articles:objData.articles,
-      totalResults:objData.totalResults,
-      loding:false
-    });
+    let objData= await data.json();
     
+    setArticles(objData.articles);
+    setTotalResults(objData.totalResults);
+    setLoading(false);
   }
 
-  async updateNews(){
-    this.props.setProgress.setProgress(30);
-    const url=`https://newsapi.org/v2/top-headlines?country=${this.props.country}&category=${this.props.category}&apiKey=c48f7265c67a4329a55d126cef515ecb&page=${this.state.page}&pageSize=${this.props.pageSize}`;
+
+  const fetchMoreData = async () => {
+    setPage(page+1);
+    const url=`https://newsapi.org/v2/top-headlines?country=${props.country}&category=${props.category}&apiKey=c48f7265c67a4329a55d126cef515ecb&page=${page+1}&pageSize=${props.pageSize}`;
     let data= await fetch(url);
-    this.props.setProgress(50);
-    let objData=await data.json();
-    this.setState({
-      articles:objData.articles,
-      totalResults:objData.totalResults,
-      loding:false
-    });
-    this.props.setProgress(100);
-  }
+    let objData= await data.json();
 
-  handleNext = async ()=>{
-    this.setState({page:this.state.page+1})
-    this.updateNews();
-  }
-
-  handlePrevious = async ()=>{
-    this.setState({page:this.state.page-1})
-    this.updateNews();
-  }
-
-  fetchMoreData = async () => {
-    this.setState({page:this.state.page+1})
-    const url=`https://newsapi.org/v2/top-headlines?country=${this.props.country}&category=${this.props.category}&apiKey=c48f7265c67a4329a55d126cef515ecb&page=${this.state.page+1}&pageSize=${this.props.pageSize}`;
-    let data= await fetch(url);
-    let objData=await data.json();
-    this.setState({
-      articles:this.state.articles.concat(objData.articles),
-      totalResults:objData.totalResults,
-      loding:false
-    });
+    setArticles(articles.concat(objData.articles));
+    setTotalResults(objData.totalResults);
+    setLoading(false);
   };
 
-  
-  render() {
     return (
      
       <>
-        <h2 className='text-center my-4 pt-5'>News Monks -- Top {this.capitalizeFirstLetter(this.props.category)} Headlines</h2>
-        {this.state.loding && <Spinner/>}
+        <h2 className='text-center my-4 pt-5'>News Monks -- Top {capitalizeFirstLetter(props.category)} Headlines</h2>
+        {loading && <Spinner/>}
 
         <InfiniteScroll
-          dataLength={this.state.articles.length}
-          next={this.fetchMoreData}
-          hasMore={this.state.articles.length!==this.state.totalResults}
+          dataLength={articles.length}
+          next={fetchMoreData}
+          hasMore={articles.length!==totalResults}
           loader={<Spinner/>}>
           <div className="container">
             <div className="row">
-              {!this.state.loding && this.state.articles.map((element)=>{
+              {!loading && articles.map((element)=>{
                     return (<div className="col-md-4">
                         <NewsItems title={element.title}  description={element.description} imageUrl={element.urlToImage} url={element.url} author={element.author} date={element.publishedAt} source={element.source.name}/>
                     </div>)
@@ -111,5 +71,19 @@ export default class News extends Component {
   
       </>
     )
-  }
+  
 }
+
+News.defaultProps={
+  country:"in",
+  pageSize:6,
+  category:"general"
+}
+
+News.propTypes={
+  country:PropTypes.string,
+  pageSize:PropTypes.number,
+  category:PropTypes.string
+}
+
+export default News;
